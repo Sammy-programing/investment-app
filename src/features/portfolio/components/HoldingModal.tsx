@@ -7,11 +7,12 @@ import { searchStocks } from "@/services/stocksApi";
 
 interface Props {
   holding?: Holding | null;
+  initialStock?: Stock | null;
   onSave: (data: HoldingSaveInput) => void;
   onClose: () => void;
 }
 
-export default function HoldingModal({ holding, onSave, onClose }: Props) {
+export default function HoldingModal({ holding, initialStock, onSave, onClose }: Props) {
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [stockQuery, setStockQuery] = useState("");
   const [stockResults, setStockResults] = useState<Stock[]>([]);
@@ -43,6 +44,13 @@ export default function HoldingModal({ holding, onSave, onClose }: Props) {
       );
     }
   }, [holding]);
+
+  useEffect(() => {
+    if (initialStock && !holding) {
+      setSelectedStock(initialStock);
+      setStockQuery(initialStock.ticker);
+    }
+  }, [initialStock, holding]);
 
   const doSearch = useCallback(async (q: string) => {
     if (q.length < 1) { setStockResults([]); return; }
