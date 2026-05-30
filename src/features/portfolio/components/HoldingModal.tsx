@@ -96,30 +96,37 @@ export default function HoldingModal({ holding, initialStock, onSave, onClose }:
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 my-4">
-        <h2 className="text-lg font-bold mb-5">{holding ? "銘柄を編集" : "銘柄を追加"}</h2>
+      <div
+        className="rounded-2xl shadow-2xl w-full max-w-md p-6 my-4 border"
+        style={{ background: "var(--bg-card)", borderColor: "var(--border-card)" }}
+      >
+        <h2 className="text-lg font-bold mb-5" style={{ color: "var(--text-main)" }}>{holding ? "銘柄を編集" : "銘柄を追加"}</h2>
 
         {/* 銘柄選択 */}
         <div className="mb-5">
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-sub)" }}>
             銘柄 <span className="text-red-400">*</span>
-            <span className="text-gray-400 font-normal ml-1">（スクリーニングで登録済みの銘柄から選択）</span>
+            <span className="font-normal ml-1" style={{ color: "var(--text-sub)" }}>（スクリーニングで登録済みの銘柄から選択）</span>
           </label>
 
           {selectedStock ? (
-            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+            <div
+              className="flex items-center justify-between rounded-xl px-4 py-3 border"
+              style={{ background: "rgba(99,102,241,0.1)", borderColor: "rgba(99,102,241,0.3)" }}
+            >
               <div>
-                <span className="font-mono text-indigo-700 text-sm font-medium">{selectedStock.ticker}</span>
-                <span className="text-gray-700 ml-2 text-sm">{selectedStock.name}</span>
+                <span className="font-mono text-sm font-medium" style={{ color: "var(--accent)" }}>{selectedStock.ticker}</span>
+                <span className="ml-2 text-sm" style={{ color: "var(--text-main)" }}>{selectedStock.name}</span>
                 {selectedStock.sector && (
-                  <span className="text-gray-400 text-xs ml-2">{selectedStock.sector}</span>
+                  <span className="text-xs ml-2" style={{ color: "var(--text-sub)" }}>{selectedStock.sector}</span>
                 )}
               </div>
               {!holding && (
                 <button
                   type="button"
                   onClick={handleClearStock}
-                  className="text-gray-400 hover:text-gray-600 text-xs ml-2"
+                  className="hover:opacity-60 text-xs ml-2 transition-opacity"
+                  style={{ color: "var(--text-sub)" }}
                 >
                   変更
                 </button>
@@ -135,25 +142,26 @@ export default function HoldingModal({ holding, initialStock, onSave, onClose }:
                 className="input w-full"
                 autoFocus
               />
-              {searching && <p className="text-xs text-gray-400 mt-1">検索中...</p>}
+              {searching && <p className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>検索中...</p>}
               {stockResults.length > 0 && (
-                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                <div className="absolute z-10 w-full rounded-xl shadow-lg mt-1 overflow-hidden border"
+                  style={{ background: "var(--bg-card)", borderColor: "var(--border-card)" }}>
                   {stockResults.map((s) => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => handleSelectStock(s)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-sm border-b border-gray-100 last:border-0"
+                      className="w-full text-left px-4 py-2.5 hover:bg-white/5 text-sm border-b border-gray-100 last:border-0"
                     >
-                      <span className="font-mono font-medium text-indigo-700">{s.ticker}</span>
-                      <span className="text-gray-600 ml-2">{s.name}</span>
-                      {s.sector && <span className="text-gray-400 text-xs ml-1">{s.sector}</span>}
+                      <span className="font-mono font-medium" style={{ color: "var(--accent)" }}>{s.ticker}</span>
+                      <span className="ml-2" style={{ color: "var(--text-main)" }}>{s.name}</span>
+                      {s.sector && <span className="text-xs ml-1" style={{ color: "var(--text-sub)" }}>{s.sector}</span>}
                     </button>
                   ))}
                 </div>
               )}
               {!searching && stockQuery.length >= 1 && stockResults.length === 0 && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
                   見つかりません。先にスクリーニング画面で銘柄を登録してください。
                 </p>
               )}
@@ -202,7 +210,8 @@ export default function HoldingModal({ holding, initialStock, onSave, onClose }:
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50"
+              className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+              style={{ border: "1px solid var(--border-card)", color: "var(--text-sub)" }}
             >
               キャンセル
             </button>
@@ -218,8 +227,20 @@ export default function HoldingModal({ holding, initialStock, onSave, onClose }:
       </div>
 
       <style jsx>{`
-        .input { width: 100%; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; font-size: 14px; outline: none; }
-        .input:focus { box-shadow: 0 0 0 3px rgba(99,102,241,0.2); border-color: #6366f1; }
+        .input {
+          width: 100%;
+          border: 1px solid var(--border-card);
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 14px;
+          outline: none;
+          background: var(--bg-page);
+          color: var(--text-main);
+        }
+        .input:focus {
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.3);
+          border-color: var(--accent);
+        }
       `}</style>
     </div>
   );
@@ -228,7 +249,7 @@ export default function HoldingModal({ holding, initialStock, onSave, onClose }:
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">
+      <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-sub)" }}>
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {children}
