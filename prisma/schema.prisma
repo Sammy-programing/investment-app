@@ -6,6 +6,13 @@ datasource db {
   provider = "postgresql"
 }
 
+enum SyncStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 model Stock {
   id            String    @id @default(cuid())
   ticker        String    @unique
@@ -28,29 +35,21 @@ model Stock {
 
 model Holding {
   id            String    @id @default(cuid())
-  name          String
-  ticker        String
+  stockId       String
+  stock         Stock     @relation(fields: [stockId], references: [id])
   quantity      Float
   purchasePrice Float
-  currentPrice  Float
-  sector        String
-  per           Float?
-  pbr           Float?
-  dividendYield Float?
-  marketCap     Float?
-  stockId       String?
-  stock         Stock?    @relation(fields: [stockId], references: [id])
   purchaseDate  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
 
 model SyncJob {
-  id          String    @id @default(cuid())
-  status      String    @default("pending")
-  total       Int       @default(0)
-  processed   Int       @default(0)
-  failed      Int       @default(0)
-  startedAt   DateTime  @default(now())
+  id          String     @id
+  status      SyncStatus @default(PENDING)
+  total       Int        @default(0)
+  processed   Int        @default(0)
+  failed      Int        @default(0)
+  startedAt   DateTime   @default(now())
   completedAt DateTime?
 }
