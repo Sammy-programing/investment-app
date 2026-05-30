@@ -1,11 +1,10 @@
+// src/app/api/stocks/sync/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { SyncStatus } from "@prisma/client";
 
 const BATCH_SIZE = 10;
-// 参考: https://algo-trading.tokyo/python-yfinance-api-limit/
-// 10銘柄以上は3〜5秒推奨。429ブロックは数時間〜数日続くため保守的に設定。
 const INTERVAL_MS = 3000;
-// 429等のエラー時はバックオフリトライ: 10秒 → 20秒 → 30秒
 const RETRY_DELAYS_MS = [10_000, 20_000, 30_000];
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -17,14 +16,12 @@ const pendingWhere = (cutoff: Date) => ({
   ],
 });
 
-// GET: 同期待ち件数を返す
 export async function GET() {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const total = await prisma.stock.count({ where: pendingWhere(cutoff) });
   return NextResponse.json({ total });
 }
 
-// POST: 次のバッチを処理（バックオフリトライ付き）
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const jobId: string | undefined = body.jobId;
@@ -41,27 +38,25 @@ export async function POST(req: NextRequest) {
   const remaining = await prisma.stock.count({ where: pendingWhere(cutoff) });
 
   if (targets.length === 0) {
-    if (jobId) {
-      await prisma.syncJob.update({
-        where: { id: jobId },
-        data: { status: "completed", completedAt: new Date() },
-      });
-    }
-    return NextResponse.json({ done: true, remaining: 0, processed: 0, total: 0, failed: 0, jobId });
+    await prisma.syncJob.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton", status: SyncStatus.COMPLETED, total: 0, completedAt: new Date() },
+      update: { status: SyncStatus.COMPLETED, completedAt: new Date() },
+    });
+    return NextResponse.json({ done: true, remaining: 0, processed: 0, total: 0, failed: 0, jobId: "singleton" });
   }
 
-  let job;
-  if (jobId) {
-    job = await prisma.syncJob.update({
-      where: { id: jobId },
-      data: { status: "running" },
-    });
-  } else {
-    const total = await prisma.stock.count();
-    job = await prisma.syncJob.create({
-      data: { status: "running", total },
-    });
-  }
+  const total = await prisma.stock.count();
+  const job = await prisma.syncJob.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", status: SyncStatus.RUNNING, total, processed: 0, failed: 0, startedAt: new Date() },
+    update: {
+      status: SyncStatus.RUNNING,
+      completedAt: null,
+      // 新規同期開始時（jobId未設定）はカウンターをリセット
+      ...(jobId ? {} : { total, startedAt: new Date(), processed: 0, failed: 0 }),
+    },
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const yahooFinance = (await import("yahoo-finance2")).default as any;
@@ -97,16 +92,16 @@ export async function POST(req: NextRequest) {
     await sleep(INTERVAL_MS);
   }
 
-  const totalProcessed = (job as { processed: number }).processed + processed;
-  const totalFailed = (job as { failed: number }).failed + failed;
+  const totalProcessed = job.processed + processed;
+  const totalFailed = job.failed + failed;
   const newRemaining = remaining - targets.length;
 
   await prisma.syncJob.update({
-    where: { id: job.id },
+    where: { id: "singleton" },
     data: {
       processed: totalProcessed,
       failed: totalFailed,
-      status: newRemaining <= 0 ? "completed" : "running",
+      status: newRemaining <= 0 ? SyncStatus.COMPLETED : SyncStatus.RUNNING,
       completedAt: newRemaining <= 0 ? new Date() : null,
     },
   });
@@ -117,6 +112,6 @@ export async function POST(req: NextRequest) {
     processed: totalProcessed,
     failed: totalFailed,
     total: job.total,
-    jobId: job.id,
+    jobId: "singleton",
   });
 }
