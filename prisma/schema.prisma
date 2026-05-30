@@ -26,6 +26,7 @@ model Stock {
   marketCap     Float?
   eps           Float?
   roe           Float?
+  shinyoBairitsu Float?
   lastUpdated   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
