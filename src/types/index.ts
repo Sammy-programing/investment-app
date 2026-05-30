@@ -53,6 +53,7 @@ export interface Stock {
   marketCap?: number | null;
   eps?: number | null;
   roe?: number | null;
+  shinyoBairitsu?: number | null;
   lastUpdated?: string | null;
 }
 

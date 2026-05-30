@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   const dyMin = p.get("dyMin") ? parseFloat(p.get("dyMin")!) : undefined;
   const marketCapMin = p.get("marketCapMin") ? parseFloat(p.get("marketCapMin")!) : undefined;
   const marketCapMax = p.get("marketCapMax") ? parseFloat(p.get("marketCapMax")!) : undefined;
+  const shinyoBairitsuMax = p.get("shinyoBairitsuMax") ? parseFloat(p.get("shinyoBairitsuMax")!) : undefined;
   const limit = Math.min(parseInt(p.get("limit") ?? "100"), 500);
 
   const stocks = await prisma.stock.findMany({
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
         dyMin != null ? { dividendYield: { gte: dyMin, not: null } } : {},
         marketCapMin != null ? { marketCap: { gte: marketCapMin, not: null } } : {},
         marketCapMax != null ? { marketCap: { lte: marketCapMax, not: null } } : {},
+        shinyoBairitsuMax != null ? { shinyoBairitsu: { lte: shinyoBairitsuMax, not: null } } : {},
       ],
     },
     orderBy: { marketCap: "desc" },

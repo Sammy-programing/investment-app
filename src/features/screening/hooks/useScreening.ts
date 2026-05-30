@@ -12,12 +12,14 @@ interface Criteria {
   dyMin: string;
   marketCapMin: string;
   marketCapMax: string;
+  shinyoBairitsuMax: string;
 }
 
 const INITIAL_CRITERIA: Criteria = {
   q: "", sector: "", market: "",
   perMax: "", pbrMax: "", dyMin: "",
   marketCapMin: "", marketCapMax: "",
+  shinyoBairitsuMax: "",
 };
 
 export function useScreening() {
