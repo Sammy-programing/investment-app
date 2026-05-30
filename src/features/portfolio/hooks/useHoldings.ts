@@ -1,5 +1,5 @@
 // src/features/portfolio/hooks/useHoldings.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Holding } from "@/types";
 import { fetchHoldings, createHolding, updateHolding, deleteHolding } from "@/services/holdingsApi";
 
@@ -23,14 +23,21 @@ export function useHoldings() {
     setAllHoldings(data);
   }, []);
 
-  useEffect(() => { load(); loadAll(); }, []);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
+    load();
+    loadAll();
+    mountedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!mountedRef.current) return;
     const t = setTimeout(() => load(searchQuery, sectorFilter), 300);
     return () => clearTimeout(t);
-  }, [searchQuery, sectorFilter]);
+  }, [searchQuery, sectorFilter, load]);
 
-  async function save(data: Omit<Holding, "id"> & { id?: string }) {
+  const save = useCallback(async (data: Omit<Holding, "id"> & { id?: string }) => {
     if (data.id) {
       const { id, ...rest } = data;
       await updateHolding(id, rest);
@@ -39,13 +46,13 @@ export function useHoldings() {
     }
     load();
     loadAll();
-  }
+  }, [load, loadAll]);
 
-  async function remove(id: string) {
+  const remove = useCallback(async (id: string) => {
     await deleteHolding(id);
     load();
     loadAll();
-  }
+  }, [load, loadAll]);
 
   return {
     holdings,
