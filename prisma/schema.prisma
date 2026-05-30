@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Holding {
+  id            String   @id @default(cuid())
+  name          String
+  ticker        String
+  quantity      Float
+  purchasePrice Float
+  currentPrice  Float
+  sector        String
+  per           Float?
+  pbr           Float?
+  dividendYield Float?
+  marketCap     Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Stock {
+  id            String    @id @default(cuid())
+  ticker        String    @unique
+  name          String
+  sector        String?
+  market        String?
+  currentPrice  Float?
+  per           Float?
+  pbr           Float?
+  dividendYield Float?
+  marketCap     Float?
+  eps           Float?
+  roe           Float?
+  lastUpdated   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model SyncJob {
+  id          String    @id @default(cuid())
+  status      String    @default("pending")
+  total       Int       @default(0)
+  processed   Int       @default(0)
+  failed      Int       @default(0)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+}
