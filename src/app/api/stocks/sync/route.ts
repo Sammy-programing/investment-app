@@ -2,44 +2,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const BATCH_SIZE = 10;
-const RATE_LIMIT_MS = 200; // Yahoo Finance レートリミット対策
+// 参考: https://algo-trading.tokyo/python-yfinance-api-limit/
+// 10銘柄以上は3〜5秒推奨。429ブロックは数時間〜数日続くため保守的に設定。
+const INTERVAL_MS = 3000;
+// 429等のエラー時はバックオフリトライ: 10秒 → 20秒 → 30秒
+const RETRY_DELAYS_MS = [10_000, 20_000, 30_000];
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-// GET: 同期ジョブの状態を取得
-export async function GET(req: NextRequest) {
-  const jobId = new URL(req.url).searchParams.get("jobId");
-  if (jobId) {
-    const job = await prisma.syncJob.findUnique({ where: { id: jobId } });
-    return NextResponse.json(job);
-  }
-  const latest = await prisma.syncJob.findFirst({ orderBy: { startedAt: "desc" } });
-  return NextResponse.json(latest);
+const pendingWhere = (cutoff: Date) => ({
+  OR: [
+    { lastUpdated: null },
+    { lastUpdated: { lt: cutoff } },
+  ],
+});
+
+// GET: 同期待ち件数を返す
+export async function GET() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const total = await prisma.stock.count({ where: pendingWhere(cutoff) });
+  return NextResponse.json({ total });
 }
 
-// POST: 次のバッチを処理
+// POST: 次のバッチを処理（バックオフリトライ付き）
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const jobId: string | undefined = body.jobId;
 
-  // lastUpdatedが24時間以上前 or null の銘柄を対象にする
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const targets = await prisma.stock.findMany({
-    where: {
-      OR: [{ lastUpdated: null }, { lastUpdated: { lt: cutoff } }],
-    },
+    where: pendingWhere(cutoff),
     take: BATCH_SIZE,
     orderBy: { lastUpdated: "asc" },
     select: { id: true, ticker: true },
   });
 
-  // 残件数（処理前）
-  const remaining = await prisma.stock.count({
-    where: {
-      OR: [{ lastUpdated: null }, { lastUpdated: { lt: cutoff } }],
-    },
-  });
+  const remaining = await prisma.stock.count({ where: pendingWhere(cutoff) });
 
   if (targets.length === 0) {
     if (jobId) {
@@ -48,10 +47,9 @@ export async function POST(req: NextRequest) {
         data: { status: "completed", completedAt: new Date() },
       });
     }
-    return NextResponse.json({ done: true, remaining: 0, jobId });
+    return NextResponse.json({ done: true, remaining: 0, processed: 0, total: 0, failed: 0, jobId });
   }
 
-  // ジョブ作成 or 更新
   let job;
   if (jobId) {
     job = await prisma.syncJob.update({
@@ -71,25 +69,32 @@ export async function POST(req: NextRequest) {
   let failed = 0;
 
   for (const stock of targets) {
-    try {
-      const quote = await yahooFinance.quote(stock.ticker);
-      await prisma.stock.update({
-        where: { id: stock.id },
-        data: {
-          currentPrice: quote.regularMarketPrice ?? null,
-          per: quote.trailingPE ?? null,
-          pbr: quote.priceToBook ?? null,
-          dividendYield: quote.dividendYield ? quote.dividendYield * 100 : null,
-          marketCap: quote.marketCap ?? null,
-          eps: quote.epsTrailingTwelveMonths ?? null,
-          lastUpdated: new Date(),
-        },
-      });
-      processed++;
-    } catch {
-      failed++;
+    let success = false;
+    for (let attempt = 0; attempt < RETRY_DELAYS_MS.length + 1; attempt++) {
+      try {
+        const quote = await yahooFinance.quote(stock.ticker);
+        await prisma.stock.update({
+          where: { id: stock.id },
+          data: {
+            currentPrice: quote.regularMarketPrice ?? null,
+            per: quote.trailingPE ?? null,
+            pbr: quote.priceToBook ?? null,
+            dividendYield: quote.dividendYield ? quote.dividendYield * 100 : null,
+            marketCap: quote.marketCap ?? null,
+            eps: quote.epsTrailingTwelveMonths ?? null,
+            lastUpdated: new Date(),
+          },
+        });
+        success = true;
+        break;
+      } catch {
+        if (attempt < RETRY_DELAYS_MS.length) {
+          await sleep(RETRY_DELAYS_MS[attempt]);
+        }
+      }
     }
-    await sleep(RATE_LIMIT_MS);
+    if (!success) failed++;
+    await sleep(INTERVAL_MS);
   }
 
   const totalProcessed = (job as { processed: number }).processed + processed;
@@ -111,6 +116,7 @@ export async function POST(req: NextRequest) {
     remaining: Math.max(0, newRemaining),
     processed: totalProcessed,
     failed: totalFailed,
+    total: job.total,
     jobId: job.id,
   });
 }
