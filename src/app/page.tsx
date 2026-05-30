@@ -10,7 +10,7 @@ import HoldingModal from "@/features/portfolio/components/HoldingModal";
 import PortfolioChart from "@/features/charts/components/PortfolioChart";
 import StockScreening from "@/features/screening/components/StockScreening";
 import AIAdviceChat from "@/features/ai-advice/components/AIAdviceChat";
-import { Holding } from "@/types";
+import { Holding, HoldingSaveInput } from "@/types";
 
 type Tab = "portfolio" | "chart" | "screening" | "ai";
 
@@ -53,7 +53,7 @@ export default function Home() {
     await remove(id);
   }
 
-  async function handleSave(data: Omit<Holding, "id"> & { id?: string }) {
+  async function handleSave(data: HoldingSaveInput) {
     await save(data);
     setModalOpen(false);
     setEditingHolding(null);
