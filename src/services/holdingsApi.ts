@@ -1,4 +1,4 @@
-import { Holding } from "@/types";
+import { Holding, HoldingSaveInput } from "@/types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -14,19 +14,31 @@ export async function fetchHoldings(q?: string, sector?: string): Promise<Holdin
   return request<Holding[]>(`/api/holdings?${params}`);
 }
 
-export async function createHolding(data: Omit<Holding, "id">): Promise<Holding> {
+export async function createHolding(data: Omit<HoldingSaveInput, "id">): Promise<Holding> {
   return request<Holding>("/api/holdings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      stockId: data.stockId,
+      quantity: data.quantity,
+      purchasePrice: data.purchasePrice,
+      purchaseDate: data.purchaseDate ?? null,
+    }),
   });
 }
 
-export async function updateHolding(id: string, data: Partial<Holding>): Promise<Holding> {
+export async function updateHolding(
+  id: string,
+  data: Pick<HoldingSaveInput, "quantity" | "purchasePrice" | "purchaseDate">
+): Promise<Holding> {
   return request<Holding>(`/api/holdings/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      quantity: data.quantity,
+      purchasePrice: data.purchasePrice,
+      purchaseDate: data.purchaseDate ?? null,
+    }),
   });
 }
 

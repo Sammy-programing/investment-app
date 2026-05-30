@@ -1,6 +1,6 @@
 // src/features/portfolio/hooks/useHoldings.ts
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Holding } from "@/types";
+import { Holding, HoldingSaveInput } from "@/types";
 import { fetchHoldings, createHolding, updateHolding, deleteHolding } from "@/services/holdingsApi";
 
 export function useHoldings() {
@@ -9,6 +9,7 @@ export function useHoldings() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState("");
+  const mountedRef = useRef(false);
 
   const load = useCallback(async (q = searchQuery, sector = sectorFilter) => {
     const data = await fetchHoldings(q, sector);
@@ -17,13 +18,10 @@ export function useHoldings() {
     setLoading(false);
   }, [searchQuery, sectorFilter]);
 
-  // フィルターなしの全件を別途取得（stats 計算用）
   const loadAll = useCallback(async () => {
     const data = await fetchHoldings();
     setAllHoldings(data);
   }, []);
-
-  const mountedRef = useRef(false);
 
   useEffect(() => {
     load();
@@ -37,12 +35,20 @@ export function useHoldings() {
     return () => clearTimeout(t);
   }, [searchQuery, sectorFilter, load]);
 
-  const save = useCallback(async (data: Omit<Holding, "id"> & { id?: string }) => {
+  const save = useCallback(async (data: HoldingSaveInput) => {
     if (data.id) {
-      const { id, ...rest } = data;
-      await updateHolding(id, rest);
+      await updateHolding(data.id, {
+        quantity: data.quantity,
+        purchasePrice: data.purchasePrice,
+        purchaseDate: data.purchaseDate,
+      });
     } else {
-      await createHolding(data);
+      await createHolding({
+        stockId: data.stockId,
+        quantity: data.quantity,
+        purchasePrice: data.purchasePrice,
+        purchaseDate: data.purchaseDate,
+      });
     }
     load();
     loadAll();
