@@ -6,22 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-model Holding {
-  id            String   @id @default(cuid())
-  name          String
-  ticker        String
-  quantity      Float
-  purchasePrice Float
-  currentPrice  Float
-  sector        String
-  per           Float?
-  pbr           Float?
-  dividendYield Float?
-  marketCap     Float?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
 model Stock {
   id            String    @id @default(cuid())
   ticker        String    @unique
@@ -36,6 +20,27 @@ model Stock {
   eps           Float?
   roe           Float?
   lastUpdated   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  holdings      Holding[]
+}
+
+model Holding {
+  id            String    @id @default(cuid())
+  name          String
+  ticker        String
+  quantity      Float
+  purchasePrice Float
+  currentPrice  Float
+  sector        String
+  per           Float?
+  pbr           Float?
+  dividendYield Float?
+  marketCap     Float?
+  stockId       String?
+  stock         Stock?    @relation(fields: [stockId], references: [id])
+  purchaseDate  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
