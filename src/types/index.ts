@@ -1,15 +1,25 @@
 export interface Holding {
   id: string;
+  stockId: string;
   name: string;
   ticker: string;
   quantity: number;
   purchasePrice: number;
+  purchaseDate?: string | null;
   currentPrice: number;
   sector: string;
   per?: number | null;
   pbr?: number | null;
   dividendYield?: number | null;
   marketCap?: number | null;
+}
+
+export interface HoldingSaveInput {
+  id?: string;
+  stockId: string;
+  quantity: number;
+  purchasePrice: number;
+  purchaseDate?: string | null;
 }
 
 export interface PortfolioStats {
