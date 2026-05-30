@@ -1,8 +1,8 @@
+// src/components/AppShell.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAutoSync } from "@/hooks/useAutoSync";
 import AIFloatingButton from "@/components/AIFloatingButton";
 
 const NAV_ITEMS = [
@@ -14,22 +14,15 @@ const NAV_ITEMS = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { syncing, progress } = useAutoSync();
 
   return (
     <div className="flex flex-col h-screen" style={{ background: "var(--bg-page)" }}>
       {/* Header */}
       <header
-        className="h-14 flex items-center px-6 flex-shrink-0 gap-4"
+        className="h-14 flex items-center px-6 flex-shrink-0"
         style={{ background: "var(--bg-sidebar)", borderBottom: "1px solid var(--border-card)" }}
       >
         <span className="font-bold text-white flex-1 text-base">▋ 投資管理</span>
-        {syncing && (
-          <span className="text-xs flex items-center gap-1.5" style={{ color: "var(--text-sub)" }}>
-            <span className="inline-block animate-spin">⟳</span>
-            同期中 {progress.processed}/{progress.total}
-          </span>
-        )}
       </header>
 
       <div className="flex flex-1 overflow-hidden">
