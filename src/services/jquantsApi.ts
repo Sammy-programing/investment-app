@@ -1,5 +1,5 @@
 // src/services/jquantsApi.ts
-const BASE = "https://api.jpx-jquants.com/v1";
+const BASE = "https://api.jquants.com/v1";
 
 export interface JQuantsListedInfo {
   Code: string;             // "72030"（5桁）
